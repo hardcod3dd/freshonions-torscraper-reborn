@@ -18,7 +18,7 @@ services:
   memcached:
     image: memcached
     ports:
-      - "11211:11211"
+      - "127.0.0.1:11211:11211"
     entrypoint:
       - memcached
       - -m 128
@@ -28,9 +28,9 @@ services:
     image: dockage/tor-privoxy
     restart: always
     ports:
-      - 8118:8118
-      - 9050:9050
-      - 9051:9051
+      - 127.0.0.1:8118:8118
+      - 127.0.0.1:9050:9050
+      - 127.0.0.1:9051:9051
 
   adminer:
     depends_on:
@@ -39,7 +39,7 @@ services:
     image: adminer
     restart: always
     ports:
-      - 8080:8080
+      - 127.0.0.1:8080:8080
 
   scrapy:
     depends_on:
@@ -102,7 +102,7 @@ services:
     environment:
       LANG: en_US.UTF-8
     ports:
-      - 5000:5000
+      - 127.0.0.1:5000:5000
 
   elastic:
     image: docker.elastic.co/elasticsearch/elasticsearch:7.17.13
@@ -120,8 +120,8 @@ services:
       - discovery.type=single-node
       - bootstrap.memory_lock=true
     ports:
-      - 9200:9200
-      - 9500:9500
+      - 127.0.0.1:9200:9200
+      - 127.0.0.1:9500:9500
 
   kibana:
     depends_on:
@@ -138,7 +138,7 @@ services:
       - SERVERNAME=kibana
       - ELASTICSEARCH_HOSTS=https://elastic:9200
     ports:
-      - 5601:5601
+      - 127.0.0.1:5601:5601
     volumes:
       - my-esvolume:/usr/share/elasticsearch/data
 
