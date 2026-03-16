@@ -12,6 +12,9 @@ This is a fork of the source for the http://zlal32teyptf4tvi.onion hidden servic
 ### 1. Build and start
 
 ```bash
+docker build -f frontend.dockerfile . -t fresh/frontend
+docker build -f scrapper.dockerfile . -t fresh/scrapper
+docker build -f isup.dockerfile . -t fresh/isup
 docker-compose up --build -d
 ```
 
