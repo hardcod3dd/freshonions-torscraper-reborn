@@ -36,7 +36,7 @@ The scraper starts with an empty DB. Pre-populate it with ~19k known v3 onion ad
 
 ```bash
 # Copy the bulk insert script into the container
-docker cp scripts/bulk_insert_domains.py freshonions-torscraper-scrapy-1:/tmp/bulk_insert.py
+docker cp scripts/bulk_insert_domains.py freshonions-torscraper-reborn-scrapy-1:/tmp/bulk_insert.py
 
 # Fetch Ahmia list and insert all domains
 docker compose exec scrapy sh -c "curl -skL 'https://ahmia.fi/onions/' | grep -E -o '[a-z2-7]{56}\.onion' | sort -u > /tmp/o.txt && python3 /tmp/bulk_insert.py"
