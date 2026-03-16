@@ -1,0 +1,147 @@
+services:
+  db:
+    image: mariadb:10.5.8
+    restart: always
+    command: --default-authentication-plugin=mysql_native_password
+    environment:
+      MYSQL_ROOT_PASSWORD: 8SLK3Bny
+      MYSQL_DATABASE: tor
+    volumes:
+      - my-datavolume:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-p8SLK3Bny"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+  memcached:
+    image: memcached
+    ports:
+      - "11211:11211"
+    entrypoint:
+      - memcached
+      - -m 128
+
+  proxy:
+    hostname: proxy
+    image: dockage/tor-privoxy
+    restart: always
+    ports:
+      - 8118:8118
+      - 9050:9050
+      - 9051:9051
+
+  adminer:
+    depends_on:
+      db:
+        condition: service_healthy
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
+
+  scrapy:
+    depends_on:
+      db:
+        condition: service_healthy
+      proxy:
+        condition: service_started
+      memcached:
+        condition: service_started
+      elastic:
+        condition: service_started
+    image: fresh/scrapper
+    restart: on-failure
+    deploy:
+      resources:
+        limits:
+          memory: 2gb
+        reservations:
+          memory: 500m
+    environment:
+      LANG: en_US.UTF-8
+
+  isup:
+    depends_on:
+      db:
+        condition: service_healthy
+      proxy:
+        condition: service_started
+      memcached:
+        condition: service_started
+      elastic:
+        condition: service_started
+    image: fresh/isup
+    restart: on-failure
+    deploy:
+      resources:
+        limits:
+          memory: 1gb
+        reservations:
+          memory: 500m
+    environment:
+      LANG: en_US.UTF-8
+
+  frontend:
+    depends_on:
+      db:
+        condition: service_healthy
+      memcached:
+        condition: service_started
+      elastic:
+        condition: service_started
+    image: fresh/frontend
+    restart: on-failure
+    deploy:
+      resources:
+        limits:
+          memory: 1gb
+        reservations:
+          memory: 500m
+    environment:
+      LANG: en_US.UTF-8
+    ports:
+      - 5000:5000
+
+  elastic:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.13
+    restart: on-failure
+    deploy:
+      resources:
+        limits:
+          memory: 2gb
+        reservations:
+          memory: 1gb
+    environment:
+      - LANG=en_US.UTF-8
+      - node.name=elastic
+      - cluster.name=onion
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+    ports:
+      - 9200:9200
+      - 9500:9500
+
+  kibana:
+    depends_on:
+      - elastic
+    image: docker.elastic.co/kibana/kibana:7.17.3
+    restart: on-failure
+    deploy:
+      resources:
+        limits:
+          memory: 1gb
+        reservations:
+          memory: 500mb
+    environment:
+      - SERVERNAME=kibana
+      - ELASTICSEARCH_HOSTS=https://elastic:9200
+    ports:
+      - 5601:5601
+    volumes:
+      - my-esvolume:/usr/share/elasticsearch/data
+
+volumes:
+  my-datavolume:
+  my-esvolume:
