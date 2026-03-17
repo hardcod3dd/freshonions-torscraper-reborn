@@ -1,11 +1,10 @@
 services:
   tor-hs:
     build: .
+    network_mode: host
     volumes:
       - tor-hs-data:/var/lib/tor/hidden_service
     restart: always
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
 
 volumes:
   tor-hs-data:
