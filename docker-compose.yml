@@ -61,6 +61,10 @@ services:
           memory: 500m
     environment:
       LANG: en_US.UTF-8
+      ELASTICSEARCH_ENABLED: "true"
+      ELASTICSEARCH_HOST: elastic
+      ELASTICSEARCH_PORT: "9200"
+      ELASTICSEARCH_TIMEOUT: "60"
 
   isup:
     depends_on:
@@ -82,6 +86,10 @@ services:
           memory: 500m
     environment:
       LANG: en_US.UTF-8
+      ELASTICSEARCH_ENABLED: "true"
+      ELASTICSEARCH_HOST: elastic
+      ELASTICSEARCH_PORT: "9200"
+      ELASTICSEARCH_TIMEOUT: "60"
 
   frontend:
     depends_on:
@@ -101,6 +109,10 @@ services:
           memory: 500m
     environment:
       LANG: en_US.UTF-8
+      ELASTICSEARCH_ENABLED: "true"
+      ELASTICSEARCH_HOST: elastic
+      ELASTICSEARCH_PORT: "9200"
+      ELASTICSEARCH_TIMEOUT: "60"
     ports:
       - 127.0.0.1:5000:5000
 
@@ -131,7 +143,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1gb
+          memory: 4gb
         reservations:
           memory: 500mb
     environment:
