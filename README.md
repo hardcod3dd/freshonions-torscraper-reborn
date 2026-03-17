@@ -12,16 +12,13 @@ This is a fork of the source for the http://zlal32teyptf4tvi.onion hidden servic
 ### 1. Build and start
 
 ```bash
-docker build -f frontend.dockerfile . -t fresh/frontend
-docker build -f scrapper.dockerfile . -t fresh/scrapper
-docker build -f isup.dockerfile . -t fresh/isup
-docker compose up --build -d
+docker-compose up --build -d
 ```
 
 ### 2. Verify everything is running
 
 ```bash
-docker compose ps
+docker-compose ps
 ```
 
 All services should be `Up`: `db`, `proxy`, `memcached`, `elastic`, `scrapy`, `isup`, `frontend`, `adminer`, `kibana`.
@@ -36,38 +33,38 @@ The scraper starts with an empty DB. Pre-populate it with ~19k known v3 onion ad
 
 ```bash
 # Copy the bulk insert script into the container
-docker cp scripts/bulk_insert_domains.py freshonions-torscraper-reborn-scrapy-1:/tmp/bulk_insert.py
+docker cp scripts/bulk_insert_domains.py freshonions-torscraper-scrapy-1:/tmp/bulk_insert.py
 
 # Fetch Ahmia list and insert all domains
-docker compose exec scrapy sh -c "curl -skL 'https://ahmia.fi/onions/' | grep -E -o '[a-z2-7]{56}\.onion' | sort -u > /tmp/o.txt && python3 /tmp/bulk_insert.py"
+docker-compose exec scrapy sh -c "curl -skL 'https://ahmia.fi/onions/' | grep -E -o '[a-z2-7]{56}\.onion' | sort -u > /tmp/o.txt && python3 /tmp/bulk_insert.py"
 ```
 
 Verify the count:
 ```bash
-docker compose exec db mysql -uroot -p8SLK3Bny tor -e "SELECT COUNT(*) FROM domain;"
+docker-compose exec db mysql -uroot -p8SLK3Bny tor -e "SELECT COUNT(*) FROM domain;"
 ```
 
 ### 4. Run harvest (optional, finds more onions from multiple sources)
 
 ```bash
-docker compose exec scrapy sh scripts/harvest.sh
+docker-compose exec scrapy sh scripts/harvest.sh
 ```
 
 ### 5. Monitor crawling progress
 
 ```bash
 # Count domains up vs total
-docker compose exec db mysql -uroot -p8SLK3Bny tor -e "SELECT COUNT(*) as total, SUM(is_up) as up FROM domain;"
+docker-compose exec db mysql -uroot -p8SLK3Bny tor -e "SELECT COUNT(*) as total, SUM(is_up) as up FROM domain;"
 
 # Live logs
-docker compose logs -f scrapy
+docker-compose logs -f scrapy
 ```
 
 ### Stopping and wiping everything
 
 ```bash
 # Stop and remove containers, volumes (DB data), and images
-docker compose down -v --rmi all
+docker-compose down -v --rmi all
 ```
 
 ---

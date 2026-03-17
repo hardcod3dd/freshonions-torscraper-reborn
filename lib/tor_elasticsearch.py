@@ -37,7 +37,7 @@ class JSONSerializerPython2(serializer.JSONSerializer):
 
 
 def elasticsearch_retrieve_page_by_id(page_id):
-    query = Search().filter(Q("term", nid=int(page_id)))[:1]
+    query = Search(index="page").filter(Q("term", nid=int(page_id)))[:1]
     result = query.execute()
     if result.hits.total["value"] == 0:
         return None
@@ -47,7 +47,7 @@ def elasticsearch_retrieve_page_by_id(page_id):
 def elasticsearch_delete_old():
     _from = NEVER
     _to = datetime.now() - timedelta(days=30)
-    query = Search().filter(Q("range", visited_at={"from": _from, "to": _to}))
+    query = Search(index="page").filter(Q("range", visited_at={"from": _from, "to": _to}))
     result = query.delete()
 
 
@@ -74,15 +74,13 @@ def elasticsearch_pages(context, sort, page):
     if context["phrase"]:
         logging.getLogger().info("search for phrase")
         query = (
-            Search()
-            #            .filter(has_parent_query)
+            Search(index="page")
             .query(Q("match_phrase", body_stripped=context["search"]))
         )
     else:
         logging.getLogger().info("search NOT for phrase")
         query = (
-            Search()
-            #            .filter(has_parent_query)
+            Search(index="page")
             .query(Q("match", body_stripped=context["search"]))
         )
 
@@ -204,22 +202,23 @@ class PageDocType(Document):
 hidden_services = None
 
 if is_elasticsearch_enabled():
+    host = os.environ["ELASTICSEARCH_HOST"]
+    port = os.environ.get("ELASTICSEARCH_PORT", "9200")
     connections.create_connection(
-        hosts=[os.environ["ELASTICSEARCH_HOST"]],
+        hosts=[f"{host}:{port}"],
         serializer=JSONSerializerPython2(),
         timeout=int(os.environ["ELASTICSEARCH_TIMEOUT"]),
     )
-    hidden_services = Index("hiddenservices")
 
 
 def migrate():
-    hidden_services = Index("hiddenservices")
-    hidden_services.delete(ignore=404)
-    hidden_services = Index("hiddenservices")
-    hidden_services.settings(number_of_shards=8, number_of_replicas=1)
-    hidden_services.create()
+    """Initialize Elasticsearch indexes with proper mappings for ES 7.x."""
+    # Delete old single-index setup if it exists
+    Index("hiddenservices").delete(ignore=404)
+    # Create indexes with proper mappings
+    DomainDocType.init()
+    PageDocType.init()
 
 
-tracer = logging.getLogger("elasticsearch")
-tracer.setLevel(logging.DEBUG)
-url_log = logging.getLogger("urllib3").setLevel(logging.DEBUG)
+logging.getLogger("elasticsearch").setLevel(logging.WARNING)
+logging.getLogger("urllib3").setLevel(logging.WARNING)
