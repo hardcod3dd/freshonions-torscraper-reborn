@@ -16,6 +16,6 @@ FROM python-deps AS runtime
 WORKDIR /home/freshonions
 ADD . /home/freshonions
 RUN groupadd -r freshonions && useradd --no-log-init -r -g freshonions freshonions
-RUN mkdir .cache && chown freshonions:freshonions .cache
+RUN mkdir -p .cache var && chown -R freshonions:freshonions .cache var
 USER freshonions
-CMD init/scraper-service.sh # to start crawling
+CMD init/scraper-service.sh

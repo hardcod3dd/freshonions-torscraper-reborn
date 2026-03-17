@@ -6,6 +6,12 @@ DIR=$( cd "$(dirname "$0")" ; pwd -P )
 # Run Elasticsearch migration on startup (safe to run multiple times)
 python $SCRIPTDIR/elasticsearch_migrate.py
 
+# Portscan every 6 hours in background
+(while true; do $SCRIPTDIR/portscan_up.sh; sleep 21600; done) &
+
+# SSH fingerprints twice a day in background
+(while true; do $SCRIPTDIR/update_fingerprints.sh; sleep 43200; done) &
+
 while true
 do
   $SCRIPTDIR/scrape.sh

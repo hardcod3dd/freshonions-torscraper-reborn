@@ -50,7 +50,7 @@ services:
       memcached:
         condition: service_started
       elastic:
-        condition: service_started
+        condition: service_healthy
     image: fresh/scrapper
     restart: on-failure
     deploy:
@@ -75,7 +75,7 @@ services:
       memcached:
         condition: service_started
       elastic:
-        condition: service_started
+        condition: service_healthy
     image: fresh/isup
     restart: on-failure
     deploy:
@@ -98,7 +98,7 @@ services:
       memcached:
         condition: service_started
       elastic:
-        condition: service_started
+        condition: service_healthy
     image: fresh/frontend
     restart: on-failure
     deploy:
@@ -119,6 +119,12 @@ services:
   elastic:
     image: docker.elastic.co/elasticsearch/elasticsearch:7.17.13
     restart: on-failure
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 20
+      start_period: 60s
     deploy:
       resources:
         limits:

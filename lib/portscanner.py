@@ -1,17 +1,15 @@
+import os
 import random
-from datetime import *
+import threading
+from datetime import datetime
 
 from tor_db import *
-from twisted.internet import reactor
-from twisted.internet.defer import Deferred
-from twisted.internet.endpoints import TCP4ClientEndpoint
-from twisted.internet.protocol import Protocol, ClientFactory
 import socks
 
 TOR_PROXY_HOST = os.environ["TOR_PROXY_HOST"]
 TOR_PROXY_PORT = int(os.environ["TOR_PROXY_PORT"])
 MAX_TOTAL_CONNECTIONS = 16
-MAX_CONNECTIONS_PER_HOST = 1
+SOCKET_TIMEOUT = 10
 
 PORTS = {
     8333: "bitcoin",
@@ -50,136 +48,56 @@ PORTS = {
 }
 
 
-def pop_or_none(l):
-    if len(l) == 0:
-        return None
-    return l.pop()
-
-
 def get_service_name(port):
     return PORTS.get(port)
 
 
-class PortScannerClient(Protocol):
-    def connectionMade(self):
-        self.data = []
-        self.deferred = Deferred()
-        self.transport.loseConnection()
-
-    def dataReceived(self, data):
-        self.data.append(data)
-
-    def connectionLost(self, reason):
-        self.factory.conn.next_port()
-        # self.deferred.callback(''.join(self.data))
+@db_session
+def _init_host(hostname):
+    domain = Domain.find_by_host(hostname)
+    if not domain:
+        return
+    domain.portscanned_at = datetime.now()
+    domain.open_ports.clear()
 
 
-class PortScannerClientFactory(ClientFactory):
-    def __init__(self, conn):
-        self.conn = conn
-
-    def buildProtocol(self, addr):
-        p = PortScannerClient()
-        p.factory = self
-        return p
-
-    def clientConnectionLost(self, connector, reason):
-        """If we get disconnected, reconnect to server."""
-        print("connection lost")
-
-    def clientConnectionFailed(self, connector, reason):
-        print("connection failed")
-
-
-class Connection:
-    def __init__(self, scanner):
-        self.scanner = scanner
-        self.active_host = None
-        self.current_port = None
-
-    def next_port(self):
-        self.current_port = self.active_host.next_port()
-        if self.current_port:
-            self.connect()
-            return self.current_port
-        else:
-            print(("%s is finished" % self.active_host.hostname))
-            host = self.scanner.attach_to_next()
-            if host is None:
-                self.scanner.conn_finished(self)
-                return None
-            else:
-                return self.attach_to(host)
-
-    def attach_to(self, host):
-        self.active_host = host
-        self.active_host.n_conn += 1
-        return self.next_port()
-
-    def connect(self):
-        for port in PORTS.keys():
-            try:
-                s = socks.socksocket()
-                s.set_proxy(
-                    proxy_type=socks.SOCKS5, addr=TOR_PROXY_HOST, port=TOR_PROXY_PORT
-                )
-                s.connect((self.active_host.hostname, self.current_port))
-                self.active_host.add_open_port(self.current_port)
-            except Exception as e:
-                print("Failed to scan {} -- {}".format(self.active_host.hostname, e))
-
-
-class ActiveHost:
-    @db_session
-    def __init__(self, hostname):
-        self.hostname = hostname
-        self.port_queue = list(PORTS.keys())
-        # self.port_queue = [80]
-        self.n_conn = 0
-        self.domain = Domain.find_by_host(self.hostname)
-        self.domain.portscanned_at = datetime.now()
-        random.shuffle(self.port_queue)
-        self.domain.open_ports.clear()
-
-    @db_session
-    def add_open_port(self, port):
-        print(("Found open port %s:%d" % (self.hostname, port)))
-        domain = Domain.find_by_host(self.hostname)
+@db_session
+def _save_open_port(hostname, port):
+    domain = Domain.find_by_host(hostname)
+    if domain:
         domain.open_ports.create(port=port)
 
-    def next_port(self):
-        return pop_or_none(self.port_queue)
+
+def _scan_host(hostname):
+    _init_host(hostname)
+    port_list = list(PORTS.keys())
+    random.shuffle(port_list)
+    for port in port_list:
+        try:
+            s = socks.socksocket()
+            s.settimeout(SOCKET_TIMEOUT)
+            s.set_proxy(proxy_type=socks.SOCKS5, addr=TOR_PROXY_HOST, port=TOR_PROXY_PORT)
+            s.connect((hostname, port))
+            s.close()
+            print("Found open port %s:%d" % (hostname, port))
+            _save_open_port(hostname, port)
+        except Exception:
+            pass
 
 
 class PortScanner:
-    def conn_new(self):
-        self.n_conn += 1
-        return Connection(self)
-
-    def conn_finished(self, conn):
-        self.n_conn -= 1
-        if self.n_conn < 1:
-            reactor.stop()
-
-    def attach_to_next(self):
-        if self.last is None or self.last.n_conn >= MAX_CONNECTIONS_PER_HOST:
-            hostname = pop_or_none(self.host_queue)
-            if hostname:
-                self.last = ActiveHost(hostname)
-            else:
-                self.last = None
-        return self.last
-
     def __init__(self, hosts):
-        self.host_queue = list(hosts)
-        self.active_hosts = list()
-        self.n_conn = 0
-        self.last = None
+        semaphore = threading.Semaphore(MAX_TOTAL_CONNECTIONS)
+        threads = []
 
-        for i in range(0, MAX_TOTAL_CONNECTIONS):
-            host = self.attach_to_next()
-            if host:
-                conn = self.conn_new()
-                conn.attach_to(host)
+        def scan(hostname):
+            with semaphore:
+                _scan_host(hostname)
 
-        reactor.run()
+        for hostname in hosts:
+            t = threading.Thread(target=scan, args=(hostname,))
+            t.start()
+            threads.append(t)
+
+        for t in threads:
+            t.join()
