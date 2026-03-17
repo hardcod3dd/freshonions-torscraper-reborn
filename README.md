@@ -12,13 +12,18 @@ This is a fork of the source for the http://zlal32teyptf4tvi.onion hidden servic
 ### 1. Build and start
 
 ```bash
-docker-compose up --build -d
+```bash
+docker build -f frontend.dockerfile . -t fresh/frontend
+docker build -f scrapper.dockerfile . -t fresh/scrapper
+docker build -f isup.dockerfile . -t fresh/isup
+docker compose up --build -d
+```
 ```
 
 ### 2. Verify everything is running
 
 ```bash
-docker-compose ps
+docker compose ps
 ```
 
 All services should be `Up`: `db`, `proxy`, `memcached`, `elastic`, `scrapy`, `isup`, `frontend`, `adminer`, `kibana`.
@@ -36,35 +41,35 @@ The scraper starts with an empty DB. Pre-populate it with ~19k known v3 onion ad
 docker cp scripts/bulk_insert_domains.py freshonions-torscraper-scrapy-1:/tmp/bulk_insert.py
 
 # Fetch Ahmia list and insert all domains
-docker-compose exec scrapy sh -c "curl -skL 'https://ahmia.fi/onions/' | grep -E -o '[a-z2-7]{56}\.onion' | sort -u > /tmp/o.txt && python3 /tmp/bulk_insert.py"
+docker compose exec scrapy sh -c "curl -skL 'https://ahmia.fi/onions/' | grep -E -o '[a-z2-7]{56}\.onion' | sort -u > /tmp/o.txt && python3 /tmp/bulk_insert.py"
 ```
 
 Verify the count:
 ```bash
-docker-compose exec db mysql -uroot -p8SLK3Bny tor -e "SELECT COUNT(*) FROM domain;"
+docker compose exec db mysql -uroot -p8SLK3Bny tor -e "SELECT COUNT(*) FROM domain;"
 ```
 
 ### 4. Run harvest (optional, finds more onions from multiple sources)
 
 ```bash
-docker-compose exec scrapy sh scripts/harvest.sh
+docker compose exec scrapy sh scripts/harvest.sh
 ```
 
 ### 5. Monitor crawling progress
 
 ```bash
 # Count domains up vs total
-docker-compose exec db mysql -uroot -p8SLK3Bny tor -e "SELECT COUNT(*) as total, SUM(is_up) as up FROM domain;"
+docker compose exec db mysql -uroot -p8SLK3Bny tor -e "SELECT COUNT(*) as total, SUM(is_up) as up FROM domain;"
 
 # Live logs
-docker-compose logs -f scrapy
+docker compose logs -f scrapy
 ```
 
 ### Stopping and wiping everything
 
 ```bash
 # Stop and remove containers, volumes (DB data), and images
-docker-compose down -v --rmi all
+docker compose down -v --rmi all
 ```
 
 ---
@@ -104,7 +109,7 @@ docker-compose down -v --rmi all
 - `lib/tor_db/models/domain.py`: changed `description_json = Optional(Json)` → `Optional(str, 10240)` — PonyORM's Json type generates `CAST(... AS JSON)` in MariaDB UPDATE WHERE clauses which is invalid syntax; storing as varchar string avoids this
 - `torscraper/spiders/tor_scrapy.py`: fixed `parse()` returning bare `return` (None) in a generator decorated with `@db_session` — changed to `return []` to satisfy Scrapy's middleware iterable expectation; fixed `description_json` assignment to store JSON string via `json.dumps(json.loads(...))`
 - `scrapper.dockerfile`: fixed `.cache` directory ownership — was created as root before `USER freshonions`, causing tldextract permission warning on every startup; now created with `chown freshonions:freshonions`
-- `docker-compose.yml`: removed `version:` field (obsolete warning), removed `user: ${CURRENT_UID}` from all services (caused MariaDB and Tor proxy init failures), added MariaDB healthcheck with `condition: service_healthy` on all dependent services
+- `docker compose.yml`: removed `version:` field (obsolete warning), removed `user: ${CURRENT_UID}` from all services (caused MariaDB and Tor proxy init failures), added MariaDB healthcheck with `condition: service_healthy` on all dependent services
 - `scripts/bulk_insert_domains.py`: new script — bulk-inserts onion hostnames from a file directly into the DB via PyMySQL, bypassing the scraper (for pre-populating from Ahmia or other lists)
 
 ## Features
