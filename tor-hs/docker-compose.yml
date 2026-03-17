@@ -1,0 +1,12 @@
+services:
+  tor-hs:
+    image: goldy/tor-hidden-service
+    volumes:
+      - ./torrc:/etc/tor/torrc:ro
+      - tor-hs-data:/var/lib/tor/hidden_service
+    restart: always
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  tor-hs-data:
