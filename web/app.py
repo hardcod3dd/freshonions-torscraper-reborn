@@ -587,9 +587,8 @@ def bitcoin_list(addr):
 @cached(timeout=HOUR_SEC)
 @db_session
 def bitcoins_list():
-    btc_addr = BitcoinAddress.get_all()
-    if btc_addr:
-        domains = Domain.hide_banned(btc_addr.domains())
+    domains = Domain.hide_banned(BitcoinAddress.get_all())
+    if domains:
         return render_template("bitcoin_list.html", domains=domains, addr=None)
     else:
         return (

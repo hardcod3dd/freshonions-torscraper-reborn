@@ -417,7 +417,7 @@ class TorSpider(scrapy.Spider):
                     yield yield_later
 
             is_text = False
-            content_type = str(response.headers.get("Content-Type"))
+            content_type = (response.headers.get("Content-Type") or b"").decode("utf-8", errors="ignore")
             if (
                 got_server_response
                 and content_type
