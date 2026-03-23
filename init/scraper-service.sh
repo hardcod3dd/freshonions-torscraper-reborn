@@ -12,6 +12,9 @@ python $SCRIPTDIR/elasticsearch_migrate.py
 # SSH fingerprints twice a day in background
 (while true; do $SCRIPTDIR/update_fingerprints.sh; sleep 43200; done) &
 
+# Harvest new onions every 6 hours in background
+(while true; do $SCRIPTDIR/harvest.sh; sleep 21600; done) &
+
 while true
 do
   $SCRIPTDIR/scrape.sh

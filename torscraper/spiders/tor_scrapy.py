@@ -366,6 +366,7 @@ class TorSpider(scrapy.Spider):
     @db_session
     def parse(self, response, recent_alive_check=False):
         MAX_PARSE_SIZE_KB = 1000
+        results = []
         title = ""
         try:
             title = response.css("title::text").extract_first()
@@ -414,7 +415,7 @@ class TorSpider(scrapy.Spider):
                     minutes=penalty + random.randint(60, 60 + rng)
                 )
             else:
-                yield_later = None
+                req_later = None
                 # check newly dead domains immediately
                 if domain.dead_in_a_row == 0 and not recent_alive_check:
                     self.log(
@@ -425,7 +426,7 @@ class TorSpider(scrapy.Spider):
                         for _ in range(random.randint(7, 12))
                     )
                     test_url = domain.index_url() + r
-                    yield_later = scrapy.Request(
+                    req_later = scrapy.Request(
                         test_url,
                         callback=lambda r: self.parse(r, recent_alive_check=True),
                     )
@@ -440,8 +441,8 @@ class TorSpider(scrapy.Spider):
                     )
 
                 commit()
-                if yield_later:
-                    yield yield_later
+                if req_later:
+                    results.append(req_later)
 
             is_text = False
             content_type = (response.headers.get("Content-Type") or b"").decode("utf-8", errors="ignore")
@@ -473,17 +474,17 @@ class TorSpider(scrapy.Spider):
                 domain.path_scanned_at = datetime.now()
                 commit()
                 for url in interesting_paths.construct_urls(domain):
-                    yield scrapy.Request(url, callback=self.parse)
+                    results.append(scrapy.Request(url, callback=self.parse))
 
             # /description.json
 
             if domain.is_up and domain.description_json_at < path_event_horizon:
                 domain.description_json_at = datetime.now()
                 commit()
-                yield scrapy.Request(
+                results.append(scrapy.Request(
                     domain.construct_url("/description.json"),
                     callback=self.description_json,
-                )
+                ))
 
             # language detection
 
@@ -509,7 +510,7 @@ class TorSpider(scrapy.Spider):
                     for _ in range(random.randint(7, 12))
                 )
                 url = domain.index_url() + r
-                yield scrapy.Request(url, callback=self.useful_404_detection)
+                results.append(scrapy.Request(url, callback=self.useful_404_detection))
 
                 # php
 
@@ -518,7 +519,7 @@ class TorSpider(scrapy.Spider):
                     for _ in range(random.randint(7, 12))
                 )
                 url = domain.index_url() + r + ".php"
-                yield scrapy.Request(url, callback=self.useful_404_detection)
+                results.append(scrapy.Request(url, callback=self.useful_404_detection))
 
                 # dir
 
@@ -527,7 +528,7 @@ class TorSpider(scrapy.Spider):
                     for _ in range(random.randint(7, 12))
                 )
                 url = domain.index_url() + r + "/"
-                yield scrapy.Request(url, callback=self.useful_404_detection)
+                results.append(scrapy.Request(url, callback=self.useful_404_detection))
 
             link_to_list = []
             self.log("Finding links...")
@@ -537,7 +538,7 @@ class TorSpider(scrapy.Spider):
             ) and not host in TorSpider.spider_exclude:
                 for url in response.xpath("//a/@href").extract():
                     fullurl = response.urljoin(url)
-                    yield scrapy.Request(fullurl, callback=self.parse)
+                    results.append(scrapy.Request(fullurl, callback=self.parse))
                     if got_server_response and Domain.is_onion_url(fullurl):
                         try:
                             parsed_link = urllib.parse.urlparse(fullurl)
@@ -562,6 +563,8 @@ class TorSpider(scrapy.Spider):
                         pass
 
                     commit()
+
+        return results
 
     def process_exception(self, response, exception, spider):
         self.update_page_info(response.url, None, 666)
