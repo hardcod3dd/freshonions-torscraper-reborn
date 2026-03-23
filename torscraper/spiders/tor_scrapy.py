@@ -334,9 +334,9 @@ class TorSpider(scrapy.Spider):
             try:
                 domain.description_json = json.dumps(json.loads(response.body))
             except Exception:
-                domain.description_json = None
+                domain.description_json = ""
         else:
-            domain.description_json = None
+            domain.description_json = ""
 
     @db_session
     def useful_404_detection(self, response):
