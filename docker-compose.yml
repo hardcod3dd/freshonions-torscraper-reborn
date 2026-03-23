@@ -4,9 +4,9 @@ services:
     restart: always
     command: >
       --default-authentication-plugin=mysql_native_password
-      --innodb-buffer-pool-size=4G
-      --innodb-buffer-pool-instances=4
-      --innodb-log-file-size=256M
+      --innodb-buffer-pool-size=2G
+      --innodb-buffer-pool-instances=2
+      --innodb-log-file-size=128M
       --innodb-flush-log-at-trx-commit=2
       --innodb-flush-method=O_DIRECT
       --max-connections=300
@@ -17,9 +17,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 6gb
+          memory: 3gb
         reservations:
-          memory: 5gb
+          memory: 2gb
     environment:
       MYSQL_ROOT_PASSWORD: 8SLK3Bny
       MYSQL_DATABASE: tor
@@ -38,7 +38,7 @@ services:
       - "127.0.0.1:11211:11211"
     entrypoint:
       - memcached
-      - -m 512
+      - -m 256
 
   proxy:
     hostname: proxy
@@ -145,9 +145,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 7gb
+          memory: 4gb
         reservations:
-          memory: 5gb
+          memory: 3gb
     ulimits:
       memlock:
         soft: -1
@@ -161,7 +161,7 @@ services:
       - cluster.name=onion
       - discovery.type=single-node
       - bootstrap.memory_lock=true
-      - "ES_JAVA_OPTS=-Xms4g -Xmx4g"
+      - "ES_JAVA_OPTS=-Xms2g -Xmx2g"
       - indices.memory.index_buffer_size=20%
     ports:
       - 127.0.0.1:9200:9200

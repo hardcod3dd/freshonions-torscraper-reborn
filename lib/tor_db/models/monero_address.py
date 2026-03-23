@@ -7,7 +7,7 @@ class MoneroAddress(db.Entity):
     _table_ = "monero_address"
     address = Required(str, 100, unique=True)
     pages = Set(
-        "Page", reverse="monero_addresses", column="monero_address", table="monero_address_link"
+        "Page", reverse="monero_addresses", column="page", table="monero_address_link"
     )
 
     def domains(self):
