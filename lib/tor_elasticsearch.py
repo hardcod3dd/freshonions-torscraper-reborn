@@ -56,21 +56,20 @@ def elasticsearch_pages(context, sort, page):
     max_result_limit = int(os.environ["MAX_RESULT_LIMIT"])
     start = (page - 1) * result_limit
     end = start + result_limit
-    domain_query = Q("term", is_banned=False)
+
+    # Build filter directly on page-level domain fields (denormalized into PageDocType)
+    page_filter = Q("term", is_banned=False)
     if context["is_up"]:
-        domain_query = domain_query & Q("term", is_up=True)
+        page_filter = page_filter & Q("term", is_up=True)
     if not context["show_fh_default"]:
-        domain_query = domain_query & Q("term", is_crap=False)
+        page_filter = page_filter & Q("term", is_crap=False)
     if not context["show_subdomains"]:
-        domain_query = domain_query & Q("term", is_subdomain=False)
+        page_filter = page_filter & Q("term", is_subdomain=False)
     if context["rep"] == "genuine":
-        domain_query = domain_query & Q("term", is_genuine=True)
+        page_filter = page_filter & Q("term", is_genuine=True)
     if context["rep"] == "fake":
-        domain_query = domain_query & Q("term", is_fake=True)
+        page_filter = page_filter & Q("term", is_fake=True)
 
-    limit = max_result_limit if context["more"] else result_limit
-
-    has_parent_query = Q("has_parent", query=domain_query)
     if context["phrase"]:
         logging.getLogger().info("search for phrase")
         query = (
@@ -84,12 +83,10 @@ def elasticsearch_pages(context, sort, page):
             .query(Q("match", body_stripped=context["search"]))
         )
 
+    query = query.filter(page_filter)
     query = query.highlight_options(order="score", encoder="html").highlight(
         "body_stripped"
     )[start:end]
-    # query = query.source(["title", "domain_id", "created_at", "visited_at"]).params(
-    #    request_cache=True
-    # )
 
     if context["sort"] == "onion":
         query = query.sort("_id")
@@ -175,6 +172,13 @@ class PageDocType(Document):
     body_stripped = Text(analyzer=html_strip, term_vector="with_positions_offsets")
     is_frontpage = Boolean()
     nid = Integer()
+    # Domain status fields (denormalized for filtering without parent-child joins)
+    is_up = Boolean()
+    is_banned = Boolean()
+    is_crap = Boolean()
+    is_subdomain = Boolean()
+    is_genuine = Boolean()
+    is_fake = Boolean()
 
     class Index:
         name = "page"
@@ -196,6 +200,12 @@ class PageDocType(Document):
             body=body,
             body_stripped=tor_text.strip_html(body),
             nid=obj.id,
+            is_up=obj.domain.is_up,
+            is_banned=obj.domain.is_banned,
+            is_crap=obj.domain.is_crap,
+            is_subdomain=obj.domain.is_subdomain,
+            is_genuine=obj.domain.is_genuine,
+            is_fake=obj.domain.is_fake,
         )
 
 

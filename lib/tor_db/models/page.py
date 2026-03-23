@@ -28,6 +28,12 @@ class Page(db.Entity):
         column="bitcoin_address",
         table="bitcoin_address_link",
     )
+    monero_addresses = Set(
+        "MoneroAddress",
+        reverse="pages",
+        column="monero_address",
+        table="monero_address_link",
+    )
 
     @classmethod
     @db_session

@@ -1,10 +1,17 @@
 import os
 import random
 import threading
+import hashlib
 from datetime import datetime
 
 from tor_db import *
 import socks
+
+try:
+    import paramiko
+    _PARAMIKO_AVAILABLE = True
+except ImportError:
+    _PARAMIKO_AVAILABLE = False
 
 TOR_PROXY_HOST = os.environ["TOR_PROXY_HOST"]
 TOR_PROXY_PORT = int(os.environ["TOR_PROXY_PORT"])
@@ -68,6 +75,36 @@ def _save_open_port(hostname, port):
         domain.open_ports.create(port=port)
 
 
+@db_session
+def _save_ssh_fingerprint(hostname, fingerprint):
+    domain = Domain.find_by_host(hostname)
+    if domain:
+        ssh_fp = SSHFingerprint.get(fingerprint=fingerprint)
+        if not ssh_fp:
+            ssh_fp = SSHFingerprint(fingerprint=fingerprint)
+        domain.ssh_fingerprint = ssh_fp
+        print("Saved SSH fingerprint for %s: %s" % (hostname, fingerprint))
+
+
+def _extract_ssh_fingerprint(hostname, sock):
+    """Extract SSH host key fingerprint using an open socket."""
+    if not _PARAMIKO_AVAILABLE:
+        return None
+    try:
+        transport = paramiko.Transport(sock)
+        transport.start_client(timeout=SOCKET_TIMEOUT)
+        key = transport.get_remote_server_key()
+        transport.close()
+        key_bytes = key.asbytes()
+        fp_md5 = hashlib.md5(key_bytes).hexdigest()
+        fingerprint = key.get_name() + " " + ":".join(
+            a + b for a, b in zip(fp_md5[::2], fp_md5[1::2])
+        )
+        return fingerprint
+    except Exception:
+        return None
+
+
 def _scan_host(hostname):
     _init_host(hostname)
     port_list = list(PORTS.keys())
@@ -78,9 +115,16 @@ def _scan_host(hostname):
             s.settimeout(SOCKET_TIMEOUT)
             s.set_proxy(proxy_type=socks.SOCKS5, addr=TOR_PROXY_HOST, port=TOR_PROXY_PORT)
             s.connect((hostname, port))
-            s.close()
             print("Found open port %s:%d" % (hostname, port))
             _save_open_port(hostname, port)
+            if port == 22:
+                fingerprint = _extract_ssh_fingerprint(hostname, s)
+                if fingerprint:
+                    _save_ssh_fingerprint(hostname, fingerprint)
+            try:
+                s.close()
+            except Exception:
+                pass
         except Exception:
             pass
 

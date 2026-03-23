@@ -15,6 +15,7 @@ from tor_cache import *
 import re
 import os
 import bitcoin
+import monero
 import email_util
 import banned
 import tor_text
@@ -100,6 +101,8 @@ def maybe_search_redirect(search):
             return redirect(url_for("email_list", addr=search), code=302)
         elif bitcoin.is_valid(search):
             return redirect(url_for("bitcoin_list", addr=search), code=302)
+        elif monero.is_valid(search):
+            return redirect(url_for("monero_list", addr=search), code=302)
     return None
 
 
@@ -157,6 +160,15 @@ def count_emails(email):
 def count_bitcoins(addr):
     return cache_memoize(
         "count.bitcoin:%s" % addr.address,
+        timeout=3600,
+        func=lambda: len(addr.domains()),
+    )
+
+
+@db_session
+def count_moneros(addr):
+    return cache_memoize(
+        "count.monero:%s" % addr.address,
         timeout=3600,
         func=lambda: len(addr.domains()),
     )

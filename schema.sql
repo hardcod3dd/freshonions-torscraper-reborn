@@ -16,6 +16,39 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
+-- Table structure for table `monero_address`
+--
+
+DROP TABLE IF EXISTS `monero_address`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `monero_address` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `address` varchar(106) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `address` (`address`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `monero_address_link`
+--
+
+DROP TABLE IF EXISTS `monero_address_link`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `monero_address_link` (
+  `page` int(11) NOT NULL DEFAULT '0',
+  `monero_address` int(11) NOT NULL DEFAULT '0',
+  PRIMARY KEY (`page`,`monero_address`),
+  KEY `idx_monero_address_link` (`page`),
+  KEY `fk_monero_address_link__monero_address` (`monero_address`),
+  CONSTRAINT `fk_monero_address_link__monero_address` FOREIGN KEY (`monero_address`) REFERENCES `monero_address` (`id`),
+  CONSTRAINT `fk_monero_address_link__page` FOREIGN KEY (`page`) REFERENCES `page` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `bitcoin_address`
 --
 

@@ -6,9 +6,9 @@
 {{ ruler() }}
 
 <div class="contents">
-<h2>Bitcoin Address</h2>
+<h2>Monero Address</h2>
 {% if addr %}
-<p>Showing domains for address "{{addr}}" <a href="{{url_for('bitcoin_list_json', addr=addr)}}">[JSON]</a></p>
+<p>Showing domains for address "{{addr}}" <a href="{{url_for('monero_list_json', addr=addr)}}">[JSON]</a></p>
 {% endif %}
 <p></p>
 {{ domain_table(domains)}}

@@ -3,6 +3,7 @@ from tor_db.db import db
 from tor_db.constants import *
 import tor_db.models.email
 import tor_db.models.bitcoin_address
+import tor_db.models.monero_address
 import tor_db.models.page
 from tor_cache import *
 import detect_language
@@ -409,6 +410,15 @@ class Domain(db.Entity):
         ).limit(100)
 
     @db_session
+    def monero_addresses(self):
+        return select(
+            m
+            for m in tor_db.models.monero_address.MoneroAddress
+            for p in m.pages
+            if p.domain == self
+        ).limit(100)
+
+    @db_session
     def frontpage(self):
         return select(
             p
@@ -421,10 +431,10 @@ class Domain(db.Entity):
     @classmethod
     @db_session
     def has_frontpage(klass):
-        return leftjoin(
+        return left_join(
             d
             for d in klass
-            for p in self.pages
+            for p in d.pages
             if p.is_frontpage == True and (p.code == 200 or p.code == 206)
         )
 

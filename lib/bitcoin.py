@@ -1,27 +1,26 @@
 from Crypto.Hash import SHA256
 import re
-import math
 
-REGEX = re.compile("\b[13][a-zA-Z1-9]{26,34}\b", re.MULTILINE)
-REGEX_ALL = re.compile("^[13][a-zA-Z1-9]{26,34}$", re.MULTILINE)
+REGEX = re.compile(r"\b[13][a-zA-Z1-9]{26,34}\b", re.MULTILINE)
+REGEX_ALL = re.compile(r"^[13][a-zA-Z1-9]{26,34}$", re.MULTILINE)
 
 __b58chars = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
 __b58base = len(__b58chars)
 
 
 def b58decode(v, length):
-    """decode v into a string of len bytes"""
+    """decode v into bytes of len bytes"""
     long_value = 0
     for (i, c) in enumerate(v[::-1]):
         long_value += __b58chars.find(c) * (__b58base ** i)
 
-    result = ""
+    result = b""
     while long_value >= 256:
         div, mod = divmod(long_value, 256)
-        result = chr(mod) + result
+        result = bytes([mod]) + result
         long_value = div
 
-    result = chr(long_value) + result
+    result = bytes([long_value]) + result
 
     nPad = 0
     for c in v:
@@ -30,7 +29,7 @@ def b58decode(v, length):
         else:
             break
 
-    result = chr(0) * nPad + result
+    result = b"\x00" * nPad + result
     if length is not None and len(result) != length:
         return None
 
@@ -44,7 +43,6 @@ def is_valid(addr):
     bin_addr = b58decode(addr, 25)
     if bin_addr is None:
         return None
-    version = bin_addr[0]
     checksum = bin_addr[-4:]
     vh160 = bin_addr[:-4]  # Version plus hash160 is what is checksummed
     h3 = SHA256.new(SHA256.new(vh160).digest()).digest()

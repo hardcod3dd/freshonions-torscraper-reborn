@@ -26,7 +26,7 @@ from tor_db import *
 from tor_elasticsearch import *
 
 config = {
-    "DEBUG": True,  # some Flask specific configs
+    "DEBUG": False,
     "CACHE_TYPE": "SimpleCache",  # Flask-Caching related configs
     "CACHE_DEFAULT_TIMEOUT": 300,
 }
@@ -50,6 +50,7 @@ app.jinja_env.globals.update(is_cached=is_cached)
 app.jinja_env.globals.update(count_paths=helpers.count_paths)
 app.jinja_env.globals.update(count_ports=helpers.count_ports)
 app.jinja_env.globals.update(count_bitcoins=helpers.count_bitcoins)
+app.jinja_env.globals.update(count_moneros=helpers.count_moneros)
 app.jinja_env.globals.update(count_emails=helpers.count_emails)
 app.jinja_env.globals.update(count_webcomponent=helpers.count_webcomponent)
 
@@ -272,6 +273,7 @@ def onion_info(onion):
         paths = domain.interesting_paths()
         emails = domain.emails()
         bitcoin_addresses = domain.bitcoin_addresses()
+        monero_addresses = domain.monero_addresses()
         language = None
         try:
             logging.error("domain language is {}".format(domain.language))
@@ -293,6 +295,7 @@ def onion_info(onion):
             paths=paths,
             emails=emails,
             bitcoin_addresses=bitcoin_addresses,
+            monero_addresses=monero_addresses,
             links_to=links_to,
             links_from=links_from,
             fp_count=fp_count,
@@ -608,6 +611,47 @@ def bitcoin_list_json(addr):
     else:
         return (
             render_template("error.html", code=404, message="Bitcoin not found."),
+            404,
+        )
+
+
+@app.route("/monero/<addr>")
+@cached(timeout=HOUR_SEC)
+@db_session
+def monero_list(addr):
+    xmr_addr = MoneroAddress.get(address=addr)
+    if xmr_addr:
+        domains = Domain.hide_banned(xmr_addr.domains())
+        return render_template("monero_list.html", domains=domains, addr=addr)
+    else:
+        return render_template("error.html", code=404, message="No monero found."), 404
+
+
+@app.route("/moneros")
+@cached(timeout=HOUR_SEC)
+@db_session
+def moneros_list():
+    domains = Domain.hide_banned(MoneroAddress.get_all())
+    if domains:
+        return render_template("monero_list.html", domains=domains, addr=None)
+    else:
+        return (
+            render_template("error.html", code=404, message="Monero not found."),
+            404,
+        )
+
+
+@app.route("/monero/<addr>/json")
+@cached(timeout=HOUR_SEC, render_layout=False)
+@db_session
+def monero_list_json(addr):
+    xmr_addr = MoneroAddress.get(address=addr)
+    if xmr_addr:
+        domains = Domain.hide_banned(xmr_addr.domains())
+        return jsonify(Domain.to_dict_list(domains))
+    else:
+        return (
+            render_template("error.html", code=404, message="Monero not found."),
             404,
         )
 

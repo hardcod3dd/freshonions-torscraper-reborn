@@ -33,11 +33,11 @@ except paramiko.SSHException:
 myTransport.close()
 mySocket.close()
 
-
+key_bytes = sshKey.asbytes()
 printableType = sshKey.get_name()
-printableKey = base64.encodebytes(sshKey.__str__()).replace("\n", "")
-sshFingerprint = hashlib.md5(sshKey.__str__()).hexdigest()
+printableKey = base64.encodebytes(key_bytes).replace(b"\n", b"").decode("ascii")
+sshFingerprint = hashlib.md5(key_bytes).hexdigest()
 printableFingerprint = ":".join(
     a + b for a, b in zip(sshFingerprint[::2], sshFingerprint[1::2])
 )
-print((printableType + " " + printableKey))
+print(printableType + " " + printableKey)

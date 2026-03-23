@@ -205,6 +205,23 @@ No bitcoin addresses in database.
 {% endif %}
 </div>
 
+<div id="monero_addresses">
+<h3>Monero Addresses:</h3>
+{% if len(monero_addresses)==0 %}
+No monero addresses in database.
+{% else %}
+<ul>
+{% for addr in monero_addresses %}
+<li>{{addr.address}}
+{% set other_monero = count_moneros(addr) %}
+{% if other_monero > 1 %}
+(found {{other_monero - 1}} other places <a href="{{url_for('monero_list',addr=addr.address)}}">[VIEW]</a>)
+{% endif %}
+</li>
+{% endfor %}
+</ul>
+{% endif %}
+</div>
 
 <div id="ssh">
 <h3>SSH fingerprint</h3>

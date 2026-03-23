@@ -7,17 +7,17 @@ This is a fork of the source for the http://zlal32teyptf4tvi.onion hidden servic
 ## Quick Start (Docker)
 
 ### Requirements
-- Docker + Docker Compose
+- Docker with the Compose plugin (`docker compose`)
+
+> **Note:** This project uses `docker compose` (the modern plugin, shipped with Docker Desktop and Docker Engine 20.10+), not the legacy `docker-compose` standalone binary.
 
 ### 1. Build and start
 
 ```bash
-```bash
 docker build -f frontend.dockerfile . -t fresh/frontend
 docker build -f scrapper.dockerfile . -t fresh/scrapper
 docker build -f isup.dockerfile . -t fresh/isup
-docker compose up --build -d
-```
+docker compose up -d
 ```
 
 ### 2. Verify everything is running
@@ -120,7 +120,7 @@ docker compose down -v --rmi all
 * Marks clone sites of the /r/darknet superlist
 * Finds SSH fingerprints across hidden services
 * Finds email addresses across hidden  services
-* Finds bitcoin addresses across hidden services
+* Finds bitcoin and monero addresses across hidden services
 * Shows incoming / outgoing links to onion domains
 * Up-to-date alive / dead hidden service status
 * Portscanner
@@ -205,12 +205,10 @@ Debian (and ubuntu) comes with a useful program "tor-instance-create" for quickl
 
 Additionally, this resource https://www.howtoforge.com/ultimate-security-proxy-with-tor might be useful in setting up squid. If all you are doing is crawling and don't care about anonymity, I also recommend running TOR in tor2web mode (required recompilation) for increased speed
 
-## Docker compose
+## Docker
 
-You can also run fresh onion locally, you'll need Docker and Docker compose.
-'''
-make all
-'''
+You can run Fresh Onions locally with Docker. See the Quick Start section above.
 
-will build all the different containers: frontend, MySQL, scrapper, isup (alive check) and cron
-connect to localhost:80 for web app, localhost:8080 for web database access
+Use `docker compose` (not `docker-compose`) — the Compose plugin ships with Docker Desktop and Docker Engine 20.10+.
+
+Connect to `localhost:5000` for the web app and `localhost:8080` for database access (Adminer).

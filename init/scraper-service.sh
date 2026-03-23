@@ -15,5 +15,5 @@ python $SCRIPTDIR/elasticsearch_migrate.py
 while true
 do
   $SCRIPTDIR/scrape.sh
-  sleep 900
+  sleep 60
 done

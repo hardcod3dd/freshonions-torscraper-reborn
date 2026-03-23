@@ -7,6 +7,7 @@ import urllib.parse
 from datetime import *
 
 import bitcoin
+import monero
 import email_util
 import interesting_paths
 import scrapy
@@ -126,9 +127,22 @@ class TorSpider(scrapy.Spider):
     handle_httpstatus_list = [404, 403, 401, 503, 500, 504, 502, 206]
     start_urls = domain_urls_recent_no_crap()
     if len(start_urls) == 0:
-        # v3 onion seed URLs — replace or extend with active v3 link directories
+        # v3 onion seed URLs — active link directories and search engines
         start_urls = [
+            # Torch search engine
             "http://torchdeedp3i2jigzjdmfpn5ttjhthh5wbmda2rr3jvqjg5p77c54dqd.onion/",
+            # Ahmia search engine
+            "http://juhanurmihxlp77nkq76byazcldy2hlmovfu2epvl5ankdibsot4csyd.onion/",
+            # DuckDuckGo onion
+            "https://duckduckgogg42xjoc72x3sjasowoarfbgcmvfimaftt6twagswzczad.onion/",
+            # Haystak search engine
+            "http://haystak5njsmn2hqkewecpaxetahtwhsbsa64jom2k22z5afxhnpxfid.onion/",
+            # OnionDir link directory
+            "http://dirnxxdraygbifgc36xsq3fxibkp2zs5lbqbsaz7zbfkcg2hgmrinyd.onion/",
+            # The Hidden Wiki v3
+            "http://zqktlwiuavvvqqt4ybvgvi7tyo4hjl5xgfuvpdf6otjiycgwqbym2qad.onion/wiki/",
+            # Daniel's Hosting onion list
+            "http://danielas3rtn54uwmofdo3x2bsdifr47huasnmbgqzfrec5ubupvtpid.onion/",
         ]
 
     custom_settings = {
@@ -137,15 +151,17 @@ class TorSpider(scrapy.Spider):
         "ALLOW_BIG_DOWNLOAD": [],
         "INJECT_RANGE_HEADER": True,
         "ROBOTSTXT_OBEY": False,
-        "CONCURRENT_REQUESTS": 32,
-        "REACTOR_THREADPOOL_MAXSIZE": 32,
+        "CONCURRENT_REQUESTS": 64,
+        "REACTOR_THREADPOOL_MAXSIZE": 64,
         "CONCURRENT_REQUESTS_PER_DOMAIN": 4,
         "DEPTH_PRIORITY": 8,
-        "DOWNLOAD_TIMEOUT": 90,
+        "DOWNLOAD_TIMEOUT": 60,
         "RETRY_TIMES": 1,
         "MAX_PAGES_PER_DOMAIN": 1000,
         "HTTPERROR_ALLOWED_CODES": handle_httpstatus_list,
         "RETRY_HTTP_CODES": [],
+        "COOKIES_ENABLED": False,
+        "TELNETCONSOLE_ENABLED": False,
         "DOWNLOADER_MIDDLEWARES": {
             "torscraper.middlewares.FilterDomainByPageLimitMiddleware": 551,
             "torscraper.middlewares.FilterTooManySubdomainsMiddleware": 550,
@@ -297,6 +313,17 @@ class TorSpider(scrapy.Spider):
             if not bitcoin_addr:
                 bitcoin_addr = BitcoinAddress(address=addr)
             page.bitcoin_addresses.add(bitcoin_addr)
+
+        page.monero_addresses.clear()
+        self.log("find_monero")
+        for addr in re.findall(monero.REGEX, str(body)):
+            self.log("testing monero address %s" % addr)
+            if not monero.is_valid(addr):
+                continue
+            monero_addr = MoneroAddress.get(address=addr)
+            if not monero_addr:
+                monero_addr = MoneroAddress(address=addr)
+            page.monero_addresses.add(monero_addr)
 
     @db_session
     def description_json(self, response):

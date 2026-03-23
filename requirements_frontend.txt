@@ -23,3 +23,5 @@ werkzeug==2.3.7
 timeout-decorator==0.5.0
 bitcoin==1.1.42
 markupsafe==2.1.5
+gunicorn==22.0.0
+paramiko==3.4.0
