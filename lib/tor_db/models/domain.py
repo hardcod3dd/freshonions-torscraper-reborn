@@ -161,17 +161,6 @@ class Domain(db.Entity):
         )
         return list(set(op + list(web_ports)))
 
-    @db_session
-    def clones(self):
-        d = select(
-            d
-            for d in Domain
-            if d.clone_group is not None
-            and d.clone_group == self.clone_group
-            and d.id != self.id
-        )
-        return d
-
     @classmethod
     def hide_banned(klass, domains):
         return [d for d in domains if not d.is_banned]
@@ -294,7 +283,6 @@ class Domain(db.Entity):
             links_from = self.links_from()
             emails = self.emails()
             btc_addr = self.bitcoin_addresses()
-            our_clones = self.clones()
 
             d["links_to"] = []
             d["links_from"] = []
@@ -303,7 +291,6 @@ class Domain(db.Entity):
                 self.construct_url(p) for p in self.interesting_paths()
             ]
             d["bitcoin_addresses"] = []
-            d["clones"] = [d.index_url() for d in our_clones]
             d["open_ports"] = self.get_open_ports()
 
             whatweb_plugins = {}

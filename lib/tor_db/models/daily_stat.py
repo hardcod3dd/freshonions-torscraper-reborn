@@ -75,17 +75,7 @@ class DailyStat(db.Entity):
             for d in tor_db.models.domain.Domain
             if d.is_banned == True and d.last_alive > event_horizon
         )
-        r["total_clones"] = count(
-            d
-            for d in tor_db.models.domain.Domain
-            if d.last_alive > event_horizon and d.clone_group != None
-        )
-        clone_groups = count(
-            d.clone_group
-            for d in tor_db.models.domain.Domain
-            if d.last_alive > event_horizon and d.clone_group != None
-        )
-        r["total_clones"] -= clone_groups
+        r["total_clones"] = 0
         return r
 
     @classmethod

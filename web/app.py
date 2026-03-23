@@ -314,27 +314,6 @@ def onion_info_json(onion):
     return jsonify(domain.to_dict(full=True))
 
 
-@app.route("/clones/<onion>")
-@cached(timeout=HOUR_SEC)
-@db_session
-def clones_list(onion):
-    domain = select(d for d in Domain if d.host == onion).first()
-    if not domain:
-        return render_template("error.html", code=404, message="Onion not found."), 404
-    domains = Domain.hide_banned(domain.clones())
-    return render_template("clones_list.html", onion=onion, domains=domains)
-
-
-@app.route("/clones/<onion>/json")
-@cached(timeout=HOUR_SEC, render_layout=False)
-@db_session
-def clones_list_json(onion):
-    domain = select(d for d in Domain if d.host == onion).first()
-    if not domain:
-        return render_template("error.html", code=404, message="Onion not found."), 404
-    domains = Domain.hide_banned(domain.clones())
-    return jsonify(Domain.to_dict_list(domains))
-
 
 @app.route("/whatweb/<name>")
 @cached(timeout=HOUR_SEC)

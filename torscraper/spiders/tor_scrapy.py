@@ -13,6 +13,7 @@ import interesting_paths
 import scrapy
 import timeout_decorator
 import tor_text
+import whatweb
 from pony.orm import *
 from tor_db import *
 from tor_elasticsearch import *
@@ -459,6 +460,15 @@ class TorSpider(scrapy.Spider):
                 self.log("Inserting %s page into elasticsearch" % response.url)
                 pg = PageDocType.from_obj(page, response.body)
                 pg.save()
+
+            # inline tech detection (replaces whatweb batch job for frontpages)
+            if is_text and is_frontpage and domain.is_up and domain.whatweb_at < (datetime.now() - timedelta(weeks=1)):
+                tech_headers = {
+                    "server":       (response.headers.get("Server") or b"").decode("utf-8", errors="ignore"),
+                    "x-powered-by": (response.headers.get("X-Powered-By") or b"").decode("utf-8", errors="ignore"),
+                    "set-cookie":   (response.headers.get("Set-Cookie") or b"").decode("utf-8", errors="ignore"),
+                }
+                whatweb.process(domain, response.body.decode("utf-8", errors="ignore"), tech_headers)
 
             commit()
 

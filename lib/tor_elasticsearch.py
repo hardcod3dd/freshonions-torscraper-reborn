@@ -167,7 +167,6 @@ class PageDocType(Document):
     created_at = Date()
     visited_at = Date()
     code = Integer()
-    body = Text()
     domain_id = Integer()
     body_stripped = Text(analyzer=html_strip, term_vector="with_positions_offsets")
     is_frontpage = Boolean()
@@ -197,7 +196,6 @@ class PageDocType(Document):
             is_frontpage=obj.is_frontpage,
             code=obj.code,
             domain_id=obj.domain.id,
-            body=body.decode("utf-8", errors="ignore") if isinstance(body, bytes) else body,
             body_stripped=tor_text.strip_html(body.decode("utf-8", errors="ignore") if isinstance(body, bytes) else body),
             nid=obj.id,
             is_up=obj.domain.is_up,

@@ -241,25 +241,6 @@ No SSH fingerprint in database.
 {% endif %}
 </div>
 
-{% if is_elasticsearch_enabled() %}
-<div id="clones">
-<h3>Clones</h3>
-{% if not domain.clone_group %}
-<p>
-This site appears to have no clones.
-</p>
-{% else %}
-{% set n_clones = len(domain.clone_group.domains) %}
-<p>
-This site appears to have {{n_clones - 1}} clones<sup>*</sup>. <a href="{{url_for('clones_list', onion=domain.host)}}">[VIEW]</a>
-</p>
-<p>
-<span class="small"><sup>*</sup>Note that except for sites in the /r/darknetmarkets superlist, we cannot tell which &quot;clone&quot; was the original. </span>
-</p>
-{% endif %}
-
-</div>
-{% endif %}
 
 {% if domain.description_json and isinstance(domain.description_json, dict) %}
 <div id="description_json">
